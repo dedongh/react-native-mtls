@@ -36,59 +36,58 @@ import okhttp3.Request;
 import okhttp3.Response;
 
 public class CustomClientFactory implements OkHttpClientFactory {
-    public static String certificateFileP12;
-    public static String certificatePassword;
+    private final String certificateFileP12;
+    private final String certificatePassword;
+
+    public CustomClientFactory(String certificateFileP12, String certificatePassword) {
+        this.certificateFileP12 = certificateFileP12;
+        this.certificatePassword = certificatePassword;
+    }
 
     @Override
     public OkHttpClient createNewNetworkModuleClient() {
         String TAG = "OkHttpClientFactory";
 
         try {
-            byte[] decbytes = Base64.decode(certificateFileP12, Base64.DEFAULT);
-            InputStream stream = new ByteArrayInputStream(decbytes);
-
+            // Load the client certificate
             KeyStore keyStore = KeyStore.getInstance("PKCS12");
-            keyStore.load(stream, certificatePassword.toCharArray());
+            byte[] decbytes = Base64.decode(certificateFileP12, Base64.DEFAULT);
+            try (InputStream stream = new ByteArrayInputStream(decbytes)) {
+                keyStore.load(stream, certificatePassword.toCharArray());
+            }
 
-            KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance("X509");
+            // Set up key manager
+            KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
             keyManagerFactory.init(keyStore, certificatePassword.toCharArray());
 
-            X509TrustManager trustManager = new X509TrustManager() {
-                @SuppressLint("TrustAllX509TrustManager")
-                @Override
-                public void checkClientTrusted(X509Certificate[] chain, String authType) {
-                }
+            // Set up trust manager
+            TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            trustManagerFactory.init((KeyStore) null); // Use the default trust store
+            X509TrustManager trustManager = (X509TrustManager) trustManagerFactory.getTrustManagers()[0];
 
-                @SuppressLint("TrustAllX509TrustManager")
-                @Override
-                public void checkServerTrusted(X509Certificate[] chain, String authType) {
-                }
+            // Set up SSL context
+            SSLContext sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(keyManagerFactory.getKeyManagers(), trustManagerFactory.getTrustManagers(), new SecureRandom());
 
-                @Override
-                public X509Certificate[] getAcceptedIssuers() {
-                    return new X509Certificate[0];
-                }
-            };
-            SSLContext sslContext = SSLContext.getInstance("TLSv1.2");
-            sslContext.init(keyManagerFactory.getKeyManagers(), new TrustManager[]{ trustManager }, new SecureRandom());
+            // Build OkHttpClient
             OkHttpClient.Builder builder = new OkHttpClient.Builder()
                     .sslSocketFactory(sslContext.getSocketFactory(), trustManager)
-                    .hostnameVerifier(new HostnameVerifier() {
-                        @Override
-                        public boolean verify(String hostname, SSLSession session) {
-                            return true;
-                        }
-                    })
                     .cookieJar(new ReactCookieJarContainer());
+
+            // Enable TLS v1.3 and v1.2
+            ConnectionSpec spec = new ConnectionSpec.Builder(ConnectionSpec.MODERN_TLS)
+                    .tlsVersions(TlsVersion.TLS_1_3, TlsVersion.TLS_1_2)
+                    .build();
+
+            builder.connectionSpecs(Arrays.asList(spec, ConnectionSpec.COMPATIBLE_TLS));
 
             builder.addInterceptor(new CustomInterceptor());
 
             return builder.build();
 
-        } catch (
-                Exception e) {
-            Log.e(TAG, e.getMessage());
-            throw new RuntimeException(e);
+        } catch (Exception e) {
+            Log.e(TAG, "Error creating OkHttpClient: " + e.getMessage());
+            throw new RuntimeException("Failed to create OkHttpClient", e);
         }
     }
 
