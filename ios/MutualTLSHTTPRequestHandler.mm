@@ -103,7 +103,13 @@ RCT_EXPORT_MODULE()
     [configuration setHTTPShouldSetCookies:YES];
     [configuration setHTTPCookieAcceptPolicy:NSHTTPCookieAcceptPolicyAlways];
     [configuration setHTTPCookieStorage:[NSHTTPCookieStorage sharedHTTPCookieStorage]];
-    configuration.TLSMaximumSupportedProtocol = kTLSProtocol12;
+       if (@available(iOS 11.0, *)) {
+        configuration.TLSMinimumSupportedProtocol = kTLSProtocol12;
+        configuration.TLSMaximumSupportedProtocol = kTLSProtocol13;
+    } else {
+        configuration.TLSMinimumSupportedProtocol = kTLSProtocol12;
+        configuration.TLSMaximumSupportedProtocol = kTLSProtocol12;
+    }
     _session = [NSURLSession sessionWithConfiguration:configuration
                                              delegate:self
                                         delegateQueue:callbackQueue];
