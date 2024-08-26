@@ -13,7 +13,15 @@ Only iOS is supported at this time, but pull requests are welcome if anyone want
 Install it as a dependency for your react-native project. You'll probably also need the native module for `Keychain` unless you have some other way of getting the secrets into the keychain:
 
 ```sh
-yarn add react-native-mutual-tls
+npm i https://github.com/undeaDD/react-native-mtls
+npm i react-native-keychain
+npx pod-install
+```
+
+OR
+
+```sh
+yarn add https://github.com/undeaDD/react-native-mtls
 yarn add react-native-keychain
 npx pod-install
 ```

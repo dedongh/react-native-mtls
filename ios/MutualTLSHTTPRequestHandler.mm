@@ -95,7 +95,7 @@ RCT_EXPORT_MODULE()
     NSOperationQueue *callbackQueue = [NSOperationQueue new];
     callbackQueue.maxConcurrentOperationCount = 1;
     callbackQueue.underlyingQueue = [[_bridge networking] methodQueue];
-    NSURLSessionConfiguration *configuration = [NSURLSessionConfiguration defaultSessionConfiguration];
+    NSURLSessionConfiguration *configuration = [NSURLSessionConfiguration ephemeralSessionConfiguration];
     // Set allowsCellularAccess to NO ONLY if key ReactNetworkForceWifiOnly exists AND its value is YES
     if (useWifiOnly) {
       configuration.allowsCellularAccess = ![useWifiOnly boolValue];
@@ -103,13 +103,10 @@ RCT_EXPORT_MODULE()
     [configuration setHTTPShouldSetCookies:YES];
     [configuration setHTTPCookieAcceptPolicy:NSHTTPCookieAcceptPolicyAlways];
     [configuration setHTTPCookieStorage:[NSHTTPCookieStorage sharedHTTPCookieStorage]];
-       if (@available(iOS 11.0, *)) {
-        configuration.TLSMinimumSupportedProtocol = kTLSProtocol12;
-        configuration.TLSMaximumSupportedProtocol = kTLSProtocol13;
-    } else {
-        configuration.TLSMinimumSupportedProtocol = kTLSProtocol12;
-        configuration.TLSMaximumSupportedProtocol = kTLSProtocol12;
-    }
+
+    configuration.TLSMinimumSupportedProtocolVersion = tls_protocol_version_TLSv12;
+    configuration.TLSMaximumSupportedProtocolVersion = tls_protocol_version_TLSv13;
+
     _session = [NSURLSession sessionWithConfiguration:configuration
                                              delegate:self
                                         delegateQueue:callbackQueue];
