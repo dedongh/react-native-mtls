@@ -25,8 +25,8 @@ public class MutualTLSModule extends ReactContextBaseJavaModule {
     public void configure(ReadableMap readableMap) {
             String certificateFileP12 = readableMap.getString("certificateFileP12");
             String certificatePassword = readableMap.getString("certificatePassword");
-            CustomClientFactory factory = new CustomClientFactory(certificateFileP12, certificatePassword);
-            OkHttpClientProvider.setOkHttpClientFactory(factory);
+            //CustomClientFactory factory = new CustomClientFactory(certificateFileP12, certificatePassword);
+            //OkHttpClientProvider.setOkHttpClientFactory(factory);
     }
 
 
